@@ -9,6 +9,7 @@ on:
         description: 'Weblate project to use (project slug)'
         required: true
         type: string
+        default: 'ioBroker Adapters'
       debug:
         description: 'Enable debug logging'
         required: false
