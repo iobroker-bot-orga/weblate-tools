@@ -53,9 +53,12 @@ created via `axios.create()`.
   project (component names via **info** logging; REST ops at **debug**).
   Components are listed **alphabetically**; locked ones are flagged with
   `🔴 LOCKED`; a summary reports the total processed, locked and unlocked
-  counts. Lock state uses each component's `locked` field, falling back to the
-  authoritative `GET /api/components/{project}/{component}/lock/` endpoint when
-  that field is absent (`isComponentLocked` in `weblateTools.js`).
+  counts. Lock state is resolved **authoritatively** via
+  `GET /api/components/{project}/{component}/lock/` for every component — the
+  components-list `locked` field is unreliable (can report `false` for a locked
+  component) and is intentionally ignored. Lock requests use bounded
+  concurrency (`mapWithConcurrency` in `common.js`) to avoid overloading the
+  slow server.
   - Interactive: `WEBLATE_TOKEN=... node lib/checkStatus.js --project <slug> [--debug]`
   - Also reads `PROJECT`/`INPUT_PROJECT` and `DEBUG`/`INPUT_DEBUG` env vars.
 - `.github/workflows/check-status.yml` — **"check status"**, manual
