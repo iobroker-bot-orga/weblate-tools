@@ -1,0 +1,40 @@
+name: check status
+
+# Manually triggered workflow that connects to Weblate and lists all
+# components of the specified project.
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Weblate project to use (project slug)'
+        required: true
+        type: string
+      debug:
+        description: 'Enable debug logging'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  check-status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Run check status
+        env:
+          # Retrieve the GitHub secret and pass it to the script via env var.
+          WEBLATE_TOKEN: ${{ secrets.WEBLATE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT: ${{ inputs.project }}
+          DEBUG: ${{ inputs.debug }}
+        run: node lib/checkStatus.js
