@@ -1,0 +1,16 @@
+{
+  "name": "weblate-tools",
+  "version": "0.1.0",
+  "description": "Tools to manage the ioBroker Weblate instance (weblate.iobroker.net)",
+  "license": "MIT",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "check-status": "node lib/checkStatus.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0"
+  }
+}
