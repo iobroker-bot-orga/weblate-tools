@@ -56,6 +56,9 @@ created via `axios.create()`.
 - `.github/workflows/check-status.yml` — **"check status"**, manual
   (`workflow_dispatch`) with inputs `project` (string) and `debug` (boolean).
 
+**Workflow input defaults:** the `project` input defaults to `ioBroker Adapters`
+in this and every future workflow that has a `project` parameter.
+
 ## Adding a new tool
 
 1. Put the script in `lib/`.
