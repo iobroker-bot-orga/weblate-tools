@@ -51,6 +51,11 @@ created via `axios.create()`.
 
 - `lib/checkStatus.js` — connects to Weblate and lists all components of a
   project (component names via **info** logging; REST ops at **debug**).
+  Components are listed **alphabetically**; locked ones are flagged with
+  `🔴 LOCKED`; a summary reports the total processed, locked and unlocked
+  counts. Lock state uses each component's `locked` field, falling back to the
+  authoritative `GET /api/components/{project}/{component}/lock/` endpoint when
+  that field is absent (`isComponentLocked` in `weblateTools.js`).
   - Interactive: `WEBLATE_TOKEN=... node lib/checkStatus.js --project <slug> [--debug]`
   - Also reads `PROJECT`/`INPUT_PROJECT` and `DEBUG`/`INPUT_DEBUG` env vars.
 - `.github/workflows/check-status.yml` — **"check status"**, manual
