@@ -76,7 +76,8 @@ created via `axios.create()`.
   details as the abort reason), tries to extract the repository **license**
   (see `lib/licenses.js`), then creates the component, installs its **add-ons**
   and triggers a complete repository **pull** (`pullComponentRepository`).
-  Add-ons installed (`DEFAULT_ADDONS`, plus the conditional words.js one):
+  Add-ons installed come from the shared `COMPONENT_ADDONS` list in
+  `config.js` (the single source of truth, reusable by a verification job):
   `weblate.flags.same_edit`, `weblate.flags.source_edit`,
   `weblate.flags.target_edit`, `weblate.cleanup.generic`, and — only when the
   repo contains `admin/words.js` (`WORDS_TRIGGER_FILE`) — the custom "ioBroker:
