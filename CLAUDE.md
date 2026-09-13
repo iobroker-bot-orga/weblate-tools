@@ -118,6 +118,16 @@ created via `axios.create()`.
 - `.github/workflows/add-adapter.yml` — **"add adapter"**, manual
   (`workflow_dispatch`) with inputs `repo` (string, the adapter repo URL) and
   `debug` (boolean).
+- `lib/markNeedsEditing.js` — runs the two-phase needs-editing bulk edit
+  (`markComponentNeedsEditing`) on an **existing** component, without creating
+  anything (`addAdapter` aborts when the component already exists). Use it to
+  (re)apply the flag or to capture a debug log of per-unit states and PATCH
+  responses. Aborts if the component does not exist or any unit update fails.
+  - Interactive: `WEBLATE_TOKEN=... node lib/markNeedsEditing.js --component <slug> [--project <slug>] [--base en] [--debug]`
+  - Also reads `PROJECT`/`INPUT_PROJECT`, `COMPONENT`/`INPUT_COMPONENT`,
+    `BASE`/`INPUT_BASE` and `DEBUG`/`INPUT_DEBUG` env vars.
+- `.github/workflows/mark-needs-editing.yml` — **"mark needs editing"**, manual
+  (`workflow_dispatch`) with inputs `project`, `component`, `base` and `debug`.
 
 **Workflow input defaults:** the `project` input defaults to `adapters`
 in this and every future workflow that has a `project` parameter.
