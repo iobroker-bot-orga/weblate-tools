@@ -72,9 +72,18 @@ created via `axios.create()`.
   layout (`i18n/*.json`, or `i18n/*/translations.json` — plural, the ioBroker
   convention), calculates the base
   component name (**identical to the adapter name**; name == slug), aborts if
-  a component with that slug already exists, tries to extract the repository
-  **license** (see `lib/licenses.js`), then creates the component and triggers
-  a complete repository **pull** (`pullComponentRepository`). The create step
+  a component with that slug already exists (logging the existing component's
+  details as the abort reason), tries to extract the repository **license**
+  (see `lib/licenses.js`), then creates the component, installs its **add-ons**
+  and triggers a complete repository **pull** (`pullComponentRepository`).
+  Add-ons installed (`DEFAULT_ADDONS`, plus the conditional words.js one):
+  `weblate.flags.same_edit`, `weblate.flags.source_edit`,
+  `weblate.flags.target_edit`, `weblate.cleanup.generic`, and — only when the
+  repo contains `admin/words.js` (`WORDS_TRIGGER_FILE`) — the custom "ioBroker:
+  Save translations into words.js" add-on, whose instance-specific API
+  identifier must be supplied via the `WORDS_ADDON_NAME` env var / repo
+  variable (skipped with a warning when unset). Add-on failures are logged but
+  do not abort the run. The create step
   is encapsulated (`buildComponentSpec` + `createComponent`) so multiple
   components (one per detected i18n tree) can be created later without code
   duplication — currently only the main tree is added. Every step logs at
@@ -91,7 +100,8 @@ created via `axios.create()`.
   identifier Weblate expects (the SPDX id is the value passed to Weblate's
   `license` field). GitHub's own auto-detection is intentionally not used.
   - Interactive: `WEBLATE_TOKEN=... GITHUB_TOKEN=... node lib/addAdapter.js --repo <url-or-owner/ioBroker.name> [--debug]`
-  - Also reads `REPO`/`INPUT_REPO` and `DEBUG`/`INPUT_DEBUG` env vars.
+  - Also reads `REPO`/`INPUT_REPO`, `DEBUG`/`INPUT_DEBUG` and the optional
+    `WORDS_ADDON_NAME` env vars.
 - `.github/workflows/add-adapter.yml` — **"add adapter"**, manual
   (`workflow_dispatch`) with inputs `repo` (string, the adapter repo URL) and
   `debug` (boolean).
