@@ -69,7 +69,8 @@ created via `axios.create()`.
   repo metadata, retrieves the repo tree and lists all detected `i18n`
   directories, selects `src-admin/i18n` if present else `admin/i18n`
   (aborts with an error if neither exists), determines the language file
-  layout (`i18n/*.json` or `i18n/*/translation.json`), calculates the base
+  layout (`i18n/*.json`, or `i18n/*/translations.json` — plural, the ioBroker
+  convention), calculates the base
   component name (**identical to the adapter name**; name == slug), aborts if
   a component with that slug already exists, then creates the component. The
   create step is encapsulated (`buildComponentSpec` + `createComponent`) so
