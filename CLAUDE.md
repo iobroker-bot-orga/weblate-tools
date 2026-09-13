@@ -79,9 +79,15 @@ created via `axios.create()`.
   **bulk-marks every non-English translation as "needs editing"**
   (`markComponentNeedsEditing`). Weblate has no bulk-edit REST endpoint, so this
   is done per unit via `PATCH /api/units/{id}/` (state `10` = needs editing,
-  target sent unchanged); empty, read-only and already-fuzzy units are skipped,
-  and English (the base language) is left untouched. Any failed unit update
-  aborts the run.
+  target sent unchanged). It runs in **two phases**: (1) clear "needs editing"
+  on the base language (English) → "translated" (`clearNeedsEditing`), because
+  while a source string is "needs editing" Weblate makes its translations
+  **read-only** and they cannot be edited; (2) mark the translated strings of
+  every other language as "needs editing". Because Weblate may recompute the
+  translations' read-only state **asynchronously** after phase 1, phase 2
+  re-fetches a language's units a few times (default 3, 2 s apart) while
+  translated units are still read-only. Empty, still-read-only and
+  already-fuzzy units are skipped. Any failed unit update aborts the run.
   Add-ons installed come from the shared `COMPONENT_ADDONS` list in
   `config.js` (the single source of truth, reusable by a verification job):
   `weblate.flags.same_edit`, `weblate.flags.source_edit`,
