@@ -1,0 +1,52 @@
+name: mark needs editing
+
+# Manually triggered workflow that runs the "needs editing" bulk edit on an
+# existing Weblate component (clears the base language, then marks all other
+# languages as needs editing).
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Weblate project (project slug)'
+        required: true
+        type: string
+        default: 'adapters'
+      component:
+        description: 'Component slug to process'
+        required: true
+        type: string
+      base:
+        description: 'Base (source) language left untouched / cleared first'
+        required: false
+        type: string
+        default: 'en'
+      debug:
+        description: 'Enable debug logging'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  mark-needs-editing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Run mark needs editing
+        env:
+          WEBLATE_TOKEN: ${{ secrets.WEBLATE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT: ${{ inputs.project }}
+          COMPONENT: ${{ inputs.component }}
+          BASE: ${{ inputs.base }}
+          DEBUG: ${{ inputs.debug }}
+        run: node lib/markNeedsEditing.js
