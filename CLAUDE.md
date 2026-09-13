@@ -83,7 +83,10 @@ created via `axios.create()`.
   on the base language (English) → "translated" (`clearNeedsEditing`), because
   while a source string is "needs editing" Weblate makes its translations
   **read-only** and they cannot be edited; (2) mark the translated strings of
-  every other language as "needs editing". Empty, still-read-only and
+  every other language as "needs editing". Because Weblate may recompute the
+  translations' read-only state **asynchronously** after phase 1, phase 2
+  re-fetches a language's units a few times (default 3, 2 s apart) while
+  translated units are still read-only. Empty, still-read-only and
   already-fuzzy units are skipped. Any failed unit update aborts the run.
   Add-ons installed come from the shared `COMPONENT_ADDONS` list in
   `config.js` (the single source of truth, reusable by a verification job):
