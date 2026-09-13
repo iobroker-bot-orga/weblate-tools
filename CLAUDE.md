@@ -19,7 +19,7 @@ usable interactively** from the command line.
   `isDebugEnabled`), `maskSensitive`/`maskToken`, and env helpers
   (`requireEnv`, `getEnv`).
 - `lib/weblateTools.js` — Weblate REST access. Owns its **own axios instance**
-  (`getWeblateClient`). Helpers: `getPaginated`, `listProjectComponents`,
+  (`getWeblateClient`). Helpers: `getPaginated`, `getProjectComponents`,
   `getProject`.
 - `lib/githubTools.js` — GitHub REST access. Owns its **own axios instance**
   (`getGithubClient`).
