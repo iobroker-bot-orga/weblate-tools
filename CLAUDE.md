@@ -63,6 +63,25 @@ created via `axios.create()`.
   - Also reads `PROJECT`/`INPUT_PROJECT` and `DEBUG`/`INPUT_DEBUG` env vars.
 - `.github/workflows/check-status.yml` — **"check status"**, manual
   (`workflow_dispatch`) with inputs `project` (string) and `debug` (boolean).
+- `lib/addAdapter.js` — creates a Weblate component for an ioBroker adapter
+  GitHub repository. Parses the repo reference (full URL or shortform
+  `owner/ioBroker.adaptername`), resolves the head branch (main/master) from
+  repo metadata, retrieves the repo tree and lists all detected `i18n`
+  directories, selects `src-admin/i18n` if present else `admin/i18n`
+  (aborts with an error if neither exists), determines the language file
+  layout (`i18n/*.json` or `i18n/*/translation.json`), calculates the base
+  component name (**identical to the adapter name**; name == slug), aborts if
+  a component with that slug already exists, then creates the component. The
+  create step is encapsulated (`buildComponentSpec` + `createComponent`) so
+  multiple components (one per detected i18n tree) can be created later without
+  code duplication — currently only the main tree is added. Every step logs at
+  **info**. Defaults come from `config.js` (`DEFAULT_PROJECT`, `DEFAULT_VCS`,
+  `DEFAULT_FILE_FORMAT`, `DEFAULT_BASE_LANGUAGE`); base language is always `en`.
+  - Interactive: `WEBLATE_TOKEN=... GITHUB_TOKEN=... node lib/addAdapter.js --repo <url-or-owner/ioBroker.name> [--debug]`
+  - Also reads `REPO`/`INPUT_REPO` and `DEBUG`/`INPUT_DEBUG` env vars.
+- `.github/workflows/add-adapter.yml` — **"add adapter"**, manual
+  (`workflow_dispatch`) with inputs `repo` (string, the adapter repo URL) and
+  `debug` (boolean).
 
 **Workflow input defaults:** the `project` input defaults to `adapters`
 in this and every future workflow that has a `project` parameter.

@@ -1,0 +1,40 @@
+name: add adapter
+
+# Manually triggered workflow that creates a new Weblate component for an
+# ioBroker adapter GitHub repository.
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: 'GitHub URL of the adapter repository (full URL or shortform "owner/ioBroker.adaptername")'
+        required: true
+        type: string
+      debug:
+        description: 'Enable debug logging'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  add-adapter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Run add adapter
+        env:
+          # Retrieve the GitHub secret and pass it to the script via env var.
+          WEBLATE_TOKEN: ${{ secrets.WEBLATE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ inputs.repo }}
+          DEBUG: ${{ inputs.debug }}
+        run: node lib/addAdapter.js
