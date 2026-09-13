@@ -81,10 +81,10 @@ created via `axios.create()`.
   `weblate.flags.same_edit`, `weblate.flags.source_edit`,
   `weblate.flags.target_edit`, `weblate.cleanup.generic`, and — only when the
   repo contains `admin/words.js` (`WORDS_TRIGGER_FILE`) — the custom "ioBroker:
-  Save translations into words.js" add-on, whose instance-specific API
-  identifier must be supplied via the `WORDS_ADDON_NAME` env var / repo
-  variable (skipped with a warning when unset). A failure to install any add-on
-  aborts the run. The create step
+  Save translations into words.js" add-on
+  (`iobroker.weblate.gulp.adminLanguages2words`), whose identifier defaults to
+  that value and can be overridden via the `WORDS_ADDON_NAME` env var / repo
+  variable. A failure to install any add-on aborts the run. The create step
   is encapsulated (`buildComponentSpec` + `createComponent`) so multiple
   components (one per detected i18n tree) can be created later without code
   duplication — currently only the main tree is added. Every step logs at
