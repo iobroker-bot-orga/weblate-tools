@@ -82,8 +82,8 @@ created via `axios.create()`.
   repo contains `admin/words.js` (`WORDS_TRIGGER_FILE`) — the custom "ioBroker:
   Save translations into words.js" add-on, whose instance-specific API
   identifier must be supplied via the `WORDS_ADDON_NAME` env var / repo
-  variable (skipped with a warning when unset). Add-on failures are logged but
-  do not abort the run. The create step
+  variable (skipped with a warning when unset). A failure to install any add-on
+  aborts the run. The create step
   is encapsulated (`buildComponentSpec` + `createComponent`) so multiple
   components (one per detected i18n tree) can be created later without code
   duplication — currently only the main tree is added. Every step logs at
