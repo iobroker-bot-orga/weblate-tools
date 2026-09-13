@@ -77,7 +77,12 @@ created via `axios.create()`.
   (see `lib/licenses.js`), then creates the component, installs its **add-ons**
   triggers a complete repository **pull** (`pullComponentRepository`), and then
   **bulk-marks every non-English translation as "needs editing"**
-  (`markComponentNeedsEditing`). Weblate has no bulk-edit REST endpoint, so this
+  (`markComponentNeedsEditing`). Because Weblate processes a freshly created
+  component **asynchronously** (right after creation the API can report only the
+  source language with zero units), it first **waits until processing finishes**
+  (`waitForComponentReady`: polls until every translation has parsed units and
+  at least the expected number of languages — counted from the repo tree — is
+  present, with a timeout). Weblate has no bulk-edit REST endpoint, so the edit
   is done per unit via `PATCH /api/units/{id}/` (state `10` = needs editing,
   target sent unchanged). It runs in **two phases**: (1) clear "needs editing"
   on the base language (English) → "translated" (`clearNeedsEditing`), because
