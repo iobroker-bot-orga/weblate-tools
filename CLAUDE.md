@@ -75,7 +75,13 @@ created via `axios.create()`.
   a component with that slug already exists (logging the existing component's
   details as the abort reason), tries to extract the repository **license**
   (see `lib/licenses.js`), then creates the component, installs its **add-ons**
-  and triggers a complete repository **pull** (`pullComponentRepository`).
+  triggers a complete repository **pull** (`pullComponentRepository`), and then
+  **bulk-marks every non-English translation as "needs editing"**
+  (`markComponentNeedsEditing`). Weblate has no bulk-edit REST endpoint, so this
+  is done per unit via `PATCH /api/units/{id}/` (state `10` = needs editing,
+  target sent unchanged); empty, read-only and already-fuzzy units are skipped,
+  and English (the base language) is left untouched. Any failed unit update
+  aborts the run.
   Add-ons installed come from the shared `COMPONENT_ADDONS` list in
   `config.js` (the single source of truth, reusable by a verification job):
   `weblate.flags.same_edit`, `weblate.flags.source_edit`,
