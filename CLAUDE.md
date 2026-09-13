@@ -72,12 +72,24 @@ created via `axios.create()`.
   layout (`i18n/*.json`, or `i18n/*/translations.json` — plural, the ioBroker
   convention), calculates the base
   component name (**identical to the adapter name**; name == slug), aborts if
-  a component with that slug already exists, then creates the component. The
-  create step is encapsulated (`buildComponentSpec` + `createComponent`) so
-  multiple components (one per detected i18n tree) can be created later without
-  code duplication — currently only the main tree is added. Every step logs at
+  a component with that slug already exists, tries to extract the repository
+  **license** (see `lib/licenses.js`), then creates the component and triggers
+  a complete repository **pull** (`pullComponentRepository`). The create step
+  is encapsulated (`buildComponentSpec` + `createComponent`) so multiple
+  components (one per detected i18n tree) can be created later without code
+  duplication — currently only the main tree is added. Every step logs at
   **info**. Defaults come from `config.js` (`DEFAULT_PROJECT`, `DEFAULT_VCS`,
-  `DEFAULT_FILE_FORMAT`, `DEFAULT_BASE_LANGUAGE`); base language is always `en`.
+  `DEFAULT_FILE_FORMAT`, `DEFAULT_BASE_LANGUAGE`, `DEFAULT_COMMIT_PENDING_AGE`,
+  `REPOWEB_TEMPLATE`); base language is always `en`. Extra creation parameters:
+  `repoweb` (repository browser URL, built from `REPOWEB_TEMPLATE` with the
+  owner/repo filled in and Weblate's `{{branch}}`/`{{filename}}`/`{{line}}`
+  markers left intact), `commit_pending_age` (`3` hours) and, when detected,
+  the SPDX `license`.
+- `lib/licenses.js` — static list of known licenses (`KNOWN_LICENSES`) with
+  distinctive text markers, `LICENSE_FILE_NAMES`, and `detectLicense(text)`
+  which matches a repository's LICENSE file content and returns the SPDX
+  identifier Weblate expects (the SPDX id is the value passed to Weblate's
+  `license` field). GitHub's own auto-detection is intentionally not used.
   - Interactive: `WEBLATE_TOKEN=... GITHUB_TOKEN=... node lib/addAdapter.js --repo <url-or-owner/ioBroker.name> [--debug]`
   - Also reads `REPO`/`INPUT_REPO` and `DEBUG`/`INPUT_DEBUG` env vars.
 - `.github/workflows/add-adapter.yml` — **"add adapter"**, manual
