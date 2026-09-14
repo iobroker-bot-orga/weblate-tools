@@ -75,9 +75,19 @@ created via `axios.create()`.
   undefined. An **evaluation report** (table sorted alphabetically: flag
   🟢 valid / 🔴 ignored, main marker, directory, flat/nested, reason, duplicate)
   is logged **always**. If no main directory is identified the run **aborts**.
-  The `precheckOnly` flag (`--precheck-only` / `PRECHECK_ONLY` /
-  `INPUT_PRECHECK_ONLY`) stops right after the report with **no changes** to
-  Weblate. Otherwise it calculates the base
+  It then calculates a **component name/slug per valid i18n directory**
+  (`componentNameFor`): the main directory → the base component name (adapter
+  name); every other directory → `<adapterName>_<dir>` with the trailing `i18n`
+  segment removed and `/` replaced by `_` (e.g. `src-admin/src/i18n` →
+  `<adapter>_src-admin_src`). A **component report** table (sorted by name:
+  flag 🟢 exists+filemask matches / 🟡 missing / 🔴 exists+filemask mismatch,
+  component name, i18n directory, info) and a **setup summary** (which
+  components will be set up) are logged **always** — this reads component state
+  from Weblate, so `WEBLATE_TOKEN` is needed even for a precheck.
+  **Currently only the main component is created**; other missing components are
+  reported but not created. The `precheckOnly` flag (`--precheck-only` /
+  `PRECHECK_ONLY` / `INPUT_PRECHECK_ONLY`) stops right after the reports with
+  **no changes** to Weblate. Otherwise it calculates the base
   component name (**identical to the adapter name**; name == slug), aborts if
   a component with that slug already exists (logging the existing component's
   details as the abort reason), tries to extract the repository **license**
