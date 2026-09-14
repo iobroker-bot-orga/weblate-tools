@@ -87,7 +87,9 @@ created via `axios.create()`.
   **mismatch** table listing components already linked to this repo whose slug
   is not in the expected set (component + related directory, resolving
   `weblate://` links), and a **setup summary** (which components will be created
-  / fixed). The `precheckOnly` flag (`--precheck-only` / `PRECHECK_ONLY` /
+  / renamed / fixed). A mismatched component whose directory matches a
+  **missing** component is marked 🟠 **to be renamed** and is **renamed** (via
+  `updateComponent` `{slug,name}`) instead of creating a new one. The `precheckOnly` flag (`--precheck-only` / `PRECHECK_ONLY` /
   `INPUT_PRECHECK_ONLY`) stops right after the reports with **no changes** to
   Weblate. Otherwise it **processes all components**: extracts the repository
   **license** (see `lib/licenses.js`), then **creates** the missing ones (the
