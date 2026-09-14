@@ -82,7 +82,9 @@ created via `axios.create()`.
   `src-admin/src/i18n` → `<adapter>_src-admin_src`). Name
   (`componentDisplayName`): `<adapterName> (/<dir>)` (e.g.
   `shelly (/admin/i18n)`). Each existing component is **verified** (file mask,
-  VCS, attached add-ons); logged **always** (reading Weblate, so `WEBLATE_TOKEN`
+  display name, VCS, license, attached add-ons — the license is read from the
+  repo's LICENSE file, so it is verified even in precheck); logged **always**
+  (reading Weblate, so `WEBLATE_TOKEN`
   is needed even for a precheck) and **every report line carries both slug and
   name**: a **component report** table (flag 🟢 correct / 🟡 missing / 🔴
   problems / 🟠 to be renamed, slug, name, i18n directory, info), a **problems**
@@ -98,9 +100,10 @@ created via `axios.create()`.
   **license** (see `lib/licenses.js`), then **creates** the missing ones (the
   main links directly to the GitHub repo; every other is a **linked** component
   `repo: weblate://<project>/<mainSlug>`) and **fixes** the existing ones
-  (corrects file mask/template, corrects the main's VCS, adds missing add-ons),
-  and finally logs a **change report** (`component X added`, `component X
-  filemask changed to Y`, `component X add-on Y added`, …). A repository
+  (corrects file mask/template, display name, the main's VCS, license, and adds
+  missing add-ons), and finally logs a **change report** (`component X added`,
+  `component X filemask changed to Y`, `component X name changed to …`,
+  `component X license changed to Y`, `component X add-on Y added`, …). A repository
   **pull** (`pullComponentRepository`) is then triggered for **every** component;
   **needs-editing is (re)applied only to newly created components** (existing
   components are left unchanged), so every non-English translation of a new
