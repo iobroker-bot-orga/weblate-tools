@@ -1,178 +1,109 @@
 # weblate-tools
 
 Tools to manage the ioBroker Weblate instance at **https://weblate.iobroker.net**.
-Jobs are triggered primarily via GitHub workflows, but **every tool must also be
-usable interactively** from the command line.
+Jobs run primarily via manually-triggered GitHub workflows, but **every tool must
+also be usable interactively** from the command line.
 
-## Language & conventions
+## Conventions
 
-- Language: **JavaScript** (CommonJS, Node.js >= 18).
-- Use **async/await with try/catch**. Do **not** use `.then().catch()` chains.
-- All **logging is in English** and supports two levels: **info** and **debug**.
-- Scripts live in the **`lib/`** directory.
-
-## Module layout
-
-- `lib/config.js` — static, non-secret configuration constants. First constant
-  is `WEBLATE_URL` (`https://weblate.iobroker.net`). No secrets here.
-- `lib/common.js` — shared helpers: the logger (`log`, `setLogLevel`,
-  `isDebugEnabled`), `maskSensitive`/`maskToken`, and env helpers
-  (`requireEnv`, `getEnv`).
-- `lib/weblateTools.js` — Weblate REST access. Owns its **own axios instance**
-  (`getWeblateClient`). Helpers: `getPaginated`, `getProjectComponents`,
-  `getProject`.
-- `lib/githubTools.js` — GitHub REST access. Owns its **own axios instance**
-  (`getGithubClient`).
-
-**No global axios instance** — Weblate and GitHub each use a separate instance
-created via `axios.create()`.
+- **JavaScript** (CommonJS, Node.js >= 18). Use `async/await` with `try/catch`;
+  no `.then().catch()` chains.
+- Logging is **English**, two levels **info**/**debug** (`log` / `setLogLevel`
+  in `lib/common.js`).
+- Scripts live in **`lib/`**; each has a matching `workflow_dispatch` workflow
+  in `.github/workflows/`, and takes input from both CLI args and env vars.
+- **No global axios instance** — `weblateTools.js` and `githubTools.js` each
+  create their own via `axios.create()`, with request/response interceptors
+  that log at debug and **mask** tokens/secrets (`maskSensitive`).
+- **IPv4 only** process-wide (`createIpv4Agents`); Weblate requests send
+  `Content-Type: application/json`.
 
 ## Authorization & secrets
 
-- All REST operations are **authorized**.
-- Weblate: token from env var **`WEBLATE_TOKEN`**, sent as `Authorization: Token <token>`.
-- GitHub: token from env var **`GITHUB_TOKEN`**, sent as `Authorization: Bearer <token>`.
-- Both axios instances install **request/response interceptors** that log at
-  **debug** level and **mask** tokens and other sensitive data via
-  `maskSensitive` before anything is logged.
-- Workflows read the GitHub secret `WEBLATE_TOKEN` and pass it to scripts via
-  the `WEBLATE_TOKEN` env var.
+- All REST ops are authorized. Weblate token from **`WEBLATE_TOKEN`**
+  (`Authorization: Token …`), GitHub token from **`GITHUB_TOKEN`**
+  (`Authorization: Bearer …`). No secrets in `config.js`. Workflows pass the
+  `WEBLATE_TOKEN` secret via env.
 
 ## Weblate API
 
-- REST API docs: https://docs.weblate.org/en/latest/api.html
-- **Important:** confirm the documented API version matches the Weblate release
-  actually running at weblate.iobroker.net before relying on newer endpoints.
-  (The server was unreachable from the dev environment at initial setup, so the
-  version was not verified — code uses long-stable endpoints and cursor
-  pagination via the `next` link.)
+Docs: https://docs.weblate.org/en/latest/api.html — the version running at
+weblate.iobroker.net is unverified, so prefer long-stable endpoints and cursor
+pagination (`next`). Non-obvious facts (confirmed against Weblate source / the
+live server — keep these, they cost real debugging):
 
-## Scripts & workflows
+- The `vcs` field wants the backend **code** `github` (the "GitHub pull request"
+  backend), **not** the display label.
+- Component **add-ons cannot be listed** with `GET …/{component}/addons/`
+  (POST-only → 405). Read them from the component object's `addons` links
+  (`/api/addons/{id}/`); install via `POST …/addons/`.
+- **No bulk-edit endpoint.** Set unit state per unit via `PATCH /api/units/{id}/`,
+  which needs **both** `state` and a non-empty `target`. States: `0` empty,
+  `10` needs-editing, `20` translated, `30` approved, `100` read-only.
+- A translation is **read-only while its source string is "needs editing"** —
+  clear the source (→ translated) first; the read-only recompute is
+  **asynchronous**.
+- A freshly created/pulled component is processed **asynchronously**
+  (translations/units appear later) — wait before editing.
+- The components-list `locked` field is unreliable — resolve lock state via
+  `GET …/{component}/lock/`.
+- Link a component to another's repo with `repo: weblate://<project>/<component>`;
+  `slug` is writable (rename via PATCH `{slug,name}`).
 
-- `lib/checkStatus.js` — connects to Weblate and lists all components of a
-  project (component names via **info** logging; REST ops at **debug**).
-  Components are listed **alphabetically**; locked ones are flagged with
-  `🔴 LOCKED`; a summary reports the total processed, locked and unlocked
-  counts. Lock state is resolved **authoritatively** via
-  `GET /api/components/{project}/{component}/lock/` for every component — the
-  components-list `locked` field is unreliable (can report `false` for a locked
-  component) and is intentionally ignored. Lock requests use bounded
-  concurrency (`mapWithConcurrency` in `common.js`) to avoid overloading the
-  slow server.
-  - Interactive: `WEBLATE_TOKEN=... node lib/checkStatus.js --project <slug> [--debug]`
-  - Also reads `PROJECT`/`INPUT_PROJECT` and `DEBUG`/`INPUT_DEBUG` env vars.
-- `.github/workflows/check-status.yml` — **"check status"**, manual
-  (`workflow_dispatch`) with inputs `project` (string) and `debug` (boolean).
-- `lib/addAdapter.js` — creates a Weblate component for an ioBroker adapter
-  GitHub repository. Parses the repo reference (full URL or shortform
-  `owner/ioBroker.adaptername`), resolves the head branch (main/master) from
-  repo metadata, retrieves the repo tree and **evaluates all `i18n` directories**
-  (`lib/i18nEvaluation.js`): each is flat or nested; directories under a
-  `build/` folder are ignored; an `admin/` tree whose **English file** is
-  identical to a tree outside `admin/` is ignored as a duplicate. The **main**
-  directory is chosen in order: valid `admin/i18n` → the tree that `admin/i18n`
-  duplicates (if it was removed as a duplicate) → `src-admin/i18n` → else
-  undefined. An **evaluation report** (table sorted alphabetically: flag
-  🟢 valid / 🔴 ignored, main marker, directory, flat/nested, reason, duplicate)
-  is logged **always**. If no main directory is identified the run **aborts**.
-  It then calculates, per valid i18n directory, a separate **slug** and
-  **name**. Slug (`componentSlugFor`): the main directory → the base slug
-  (adapter name); every other directory → `<adapterName>_<dir>` with the
-  trailing `i18n` segment removed and `/` replaced by `_` (e.g.
-  `src-admin/src/i18n` → `<adapter>_src-admin_src`). Name
-  (`componentDisplayName`): `<adapterName> (/<dir>)` (e.g.
-  `shelly (/admin/i18n)`). Each existing component is **verified** (file mask,
-  display name, VCS, license, attached add-ons — the license is read from the
-  repo's LICENSE file, so it is verified even in precheck); logged **always**
-  (reading Weblate, so `WEBLATE_TOKEN`
-  is needed even for a precheck) and **every report line carries both slug and
-  name**: a **component report** table (flag 🟢 correct / 🟡 missing / 🔴
-  problems / 🟠 to be renamed, slug, name, i18n directory, info), a **problems**
-  table (slug + name + problem detected), a **mismatch** table listing
-  components already linked to this repo whose slug is not in the expected set
-  (slug + name + related directory, resolving
-  `weblate://` links), and a **setup summary** (which components will be created
-  / renamed / fixed). A mismatched component whose directory matches a
-  **missing** component is marked 🟠 **to be renamed** and is **renamed** (via
-  `updateComponent` `{slug,name}`) instead of creating a new one. The `precheckOnly` flag (`--precheck-only` / `PRECHECK_ONLY` /
-  `INPUT_PRECHECK_ONLY`) stops right after the reports with **no changes** to
-  Weblate. Otherwise it **processes all components**: extracts the repository
-  **license** (see `lib/licenses.js`), then **creates** the missing ones (the
-  main links directly to the GitHub repo; every other is a **linked** component
-  `repo: weblate://<project>/<mainSlug>`) and **fixes** the existing ones
-  (corrects file mask/template, display name, the main's VCS, license, and adds
-  missing add-ons), and finally logs a **change report** (`component X added`,
-  `component X filemask changed to Y`, `component X name changed to …`,
-  `component X license changed to Y`, `component X add-on Y added`, …). A repository
-  **pull** (`pullComponentRepository`) is then triggered for **every** component;
-  **needs-editing is (re)applied only to newly created components** (existing
-  components are left unchanged), so every non-English translation of a new
-  component is set to **"needs editing"**
-  (`markComponentNeedsEditing`). Because Weblate processes a freshly created
-  component **asynchronously** (right after creation the API can report only the
-  source language with zero units), it first **waits until processing finishes**
-  (`waitForComponentReady`: polls until every translation has parsed units and
-  at least the expected number of languages — counted from the repo tree — is
-  present, with a timeout). Weblate has no bulk-edit REST endpoint, so the edit
-  is done per unit via `PATCH /api/units/{id}/` (state `10` = needs editing,
-  target sent unchanged). It runs in **two phases**: (1) clear "needs editing"
-  on the base language (English) → "translated" (`clearNeedsEditing`), because
-  while a source string is "needs editing" Weblate makes its translations
-  **read-only** and they cannot be edited; (2) mark the translated strings of
-  every other language as "needs editing". Because Weblate may recompute the
-  translations' read-only state **asynchronously** after phase 1, phase 2
-  re-fetches a language's units a few times (default 3, 2 s apart) while
-  translated units are still read-only. Empty, still-read-only and
-  already-fuzzy units are skipped. Any failed unit update aborts the run.
-  Add-ons installed come from the shared `COMPONENT_ADDONS` list in
-  `config.js` (the single source of truth, reusable by a verification job):
-  `weblate.flags.same_edit`, `weblate.flags.source_edit`,
-  `weblate.flags.target_edit`, `weblate.cleanup.generic`, and — only when the
-  repo contains `admin/words.js` (`WORDS_TRIGGER_FILE`) — the custom "ioBroker:
-  Save translations into words.js" add-on
-  (`iobroker.weblate.gulp.adminLanguages2words`), whose identifier defaults to
-  that value and can be overridden via the `WORDS_ADDON_NAME` env var / repo
-  variable. A failure to install any add-on aborts the run. The create step
-  is encapsulated (`buildComponentSpec` + `createComponent`) so multiple
-  components (one per detected i18n tree) can be created later without code
-  duplication — currently only the main tree is added. Every step logs at
-  **info**. Defaults come from `config.js` (`DEFAULT_PROJECT`, `DEFAULT_VCS`,
-  `DEFAULT_FILE_FORMAT`, `DEFAULT_BASE_LANGUAGE`, `DEFAULT_COMMIT_PENDING_AGE`,
-  `REPOWEB_TEMPLATE`); base language is always `en`. Extra creation parameters:
-  `repoweb` (repository browser URL, built from `REPOWEB_TEMPLATE` with the
-  owner/repo filled in and Weblate's `{{branch}}`/`{{filename}}`/`{{line}}`
-  markers left intact), `commit_pending_age` (`3` hours) and, when detected,
-  the SPDX `license`.
-- `lib/licenses.js` — static list of known licenses (`KNOWN_LICENSES`) with
-  distinctive text markers, `LICENSE_FILE_NAMES`, and `detectLicense(text)`
-  which matches a repository's LICENSE file content and returns the SPDX
-  identifier Weblate expects (the SPDX id is the value passed to Weblate's
-  `license` field). GitHub's own auto-detection is intentionally not used.
-  - Interactive: `WEBLATE_TOKEN=... GITHUB_TOKEN=... node lib/addAdapter.js --repo <url-or-owner/ioBroker.name> [--precheck-only] [--debug]`
-  - Also reads `REPO`/`INPUT_REPO`, `PRECHECK_ONLY`/`INPUT_PRECHECK_ONLY`,
-    `DEBUG`/`INPUT_DEBUG` and the optional `WORDS_ADDON_NAME` env vars.
-- `lib/i18nEvaluation.js` — evaluates a repo's `i18n` directories:
-  `findI18nDirectories`, `detectFormat` (flat/nested), `evaluateI18nTrees`
-  (ignores `build/`, ignores `admin/` duplicates of outside trees by comparing
-  the English file JSON-canonically, selects the main directory) and
-  `formatReport` (the alphabetical table).
-- `.github/workflows/add-adapter.yml` — **"add adapter"**, manual
-  (`workflow_dispatch`) with inputs `repo` (string, the adapter repo URL),
-  `precheckOnly` (boolean) and `debug` (boolean).
+## ioBroker specifics
 
-**Workflow input defaults:** the `project` input defaults to `adapters`
-in this and every future workflow that has a `project` parameter.
+- Adapter admin translations live under `admin/i18n` (or `src-admin/i18n` for
+  React admin), in flat (`i18n/<lang>.json`) or nested
+  (`i18n/<lang>/translations.json` — **plural**, the ioBroker convention) layout.
+- Custom add-on "ioBroker: Save translations into words.js" =
+  `iobroker.weblate.gulp.adminLanguages2words`, relevant only when the repo has
+  `admin/words.js`.
 
-**Networking:** IPv6 is disabled process-wide — all REST access connects over
-**IPv4 only** (see `createIpv4Agents` in `common.js`; used by both axios
-instances). Requests to Weblate send `Content-Type: application/json`.
+## Tools
+
+- **`checkStatus.js`** — lists a project's components alphabetically, flags
+  locked ones (🔴, via the authoritative lock endpoint), prints a summary.
+  `WEBLATE_TOKEN=… node lib/checkStatus.js --project <slug> [--debug]`.
+
+- **`addAdapter.js`** — sets up Weblate components for an ioBroker adapter repo.
+  `WEBLATE_TOKEN=… GITHUB_TOKEN=… node lib/addAdapter.js --repo <url-or-owner/ioBroker.name> [--precheck-only] [--debug]`.
+  1. Evaluate all `i18n` directories (`i18nEvaluation.js`): flat vs nested;
+     ignore dirs under `build/`; ignore an `admin/` tree that duplicates a
+     non-admin tree (compared by the English file, JSON-canonically).
+  2. Pick the **main** directory: valid `admin/i18n` → the tree it duplicates
+     (if removed as a duplicate) → `src-admin/i18n` → else **abort**.
+  3. Per valid directory compute a **slug** (`componentSlugFor`: main = adapter
+     name; others `<adapter>_<dir>` with `i18n` stripped and `/`→`_`) and a
+     **name** (`componentDisplayName`: `<adapter> (/<dir>)`).
+  4. **Verify** each existing component (file mask, name, VCS, license, add-ons)
+     and log reports **always** (needs `WEBLATE_TOKEN` even for a precheck),
+     each line carrying slug + name: evaluation table, component table, problems
+     table, mismatch table (repo-linked components with an unexpected slug — one
+     whose directory matches a *missing* component is a 🟠 **rename**), and a
+     setup summary.
+  5. `precheckOnly` (`--precheck-only` / `PRECHECK_ONLY`) stops after the
+     reports with no changes. Otherwise **process all components**: create
+     missing (the main links to the GitHub repo, others are linked via
+     `weblate://<project>/<mainSlug>`), rename mismatched, fix existing (file
+     mask/template, name, the main's VCS, license, missing add-ons); **pull
+     every component**; apply **needs-editing only to newly created**
+     components; then log a **change report**.
+  - Add-ons come from `COMPONENT_ADDONS` (`config.js`); other component defaults
+    (project `adapters`, base language `en`, `commit_pending_age` 3, repoweb
+    template) live there too.
+  - **needs-editing** is per-unit (no bulk endpoint), two-phase: clear the
+    English source (→ translated) so translations stop being read-only, then
+    mark other languages "needs editing"; it waits for async processing and
+    retries while units are still read-only.
+
+- **`licenses.js`** — `detectLicense(text)` matches a repo LICENSE file to an
+  SPDX id (Weblate's `license` value); GitHub auto-detection is intentionally
+  not used.
 
 ## Adding a new tool
 
-1. Put the script in `lib/`.
-2. Reuse `common.js` for logging/masking and `weblateTools.js`/`githubTools.js`
-   for REST access — never create a global axios instance.
-3. Support both CLI args and env-var input so it runs interactively and in a
-   workflow.
-4. Add a matching manually-triggered workflow under `.github/workflows/` that
-   passes `WEBLATE_TOKEN` (and `GITHUB_TOKEN` if needed) via env.
+1. Put the script in `lib/`; reuse `common.js` (logging/masking) and
+   `weblateTools.js` / `githubTools.js` (REST) — never a global axios instance.
+2. Support both CLI args and env-var input (interactive + workflow).
+3. Add a manually-triggered workflow passing `WEBLATE_TOKEN` (and `GITHUB_TOKEN`
+   if needed) via env. A `project` input defaults to `adapters`.
