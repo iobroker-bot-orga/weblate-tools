@@ -76,7 +76,8 @@ live server — keep these, they cost real debugging):
      ignore dirs under `build/`; ignore an `admin/` tree that duplicates a
      non-admin tree (compared by the English file, JSON-canonically).
   2. Pick the **main** directory: valid `admin/i18n` → the tree it duplicates
-     (if removed as a duplicate) → `src-admin/i18n` → else **abort**.
+     (if removed as a duplicate) → `src-admin/i18n` → `src-admin/src/i18n` →
+     else **abort**.
   3. Per valid directory compute a **slug** (`componentSlugFor`: main = adapter
      name; others `<adapter>_<dir>` with `i18n` stripped and `/`→`_`) and a
      **name** (`componentDisplayName`: `<adapter> (/<dir>)`).
