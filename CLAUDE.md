@@ -79,21 +79,25 @@ created via `axios.create()`.
   (`componentNameFor`): the main directory → the base component name (adapter
   name); every other directory → `<adapterName>_<dir>` with the trailing `i18n`
   segment removed and `/` replaced by `_` (e.g. `src-admin/src/i18n` →
-  `<adapter>_src-admin_src`). A **component report** table (sorted by name:
-  flag 🟢 exists+filemask matches / 🟡 missing / 🔴 exists+filemask mismatch,
-  component name, i18n directory, info) and a **setup summary** (which
-  components will be set up) are logged **always** — this reads component state
-  from Weblate, so `WEBLATE_TOKEN` is needed even for a precheck.
-  **Currently only the main component is created**; other missing components are
-  reported but not created. The `precheckOnly` flag (`--precheck-only` /
-  `PRECHECK_ONLY` / `INPUT_PRECHECK_ONLY`) stops right after the reports with
-  **no changes** to Weblate. Otherwise it calculates the base
-  component name (**identical to the adapter name**; name == slug), aborts if
-  a component with that slug already exists (logging the existing component's
-  details as the abort reason), tries to extract the repository **license**
-  (see `lib/licenses.js`), then creates the component, installs its **add-ons**
-  triggers a complete repository **pull** (`pullComponentRepository`), and then
-  **bulk-marks every non-English translation as "needs editing"**
+  `<adapter>_src-admin_src`). Each existing component is **verified** (file
+  mask, VCS, attached add-ons); logged **always** (reading Weblate, so
+  `WEBLATE_TOKEN` is needed even for a precheck): a **component report** table
+  (flag 🟢 exists+correct / 🟡 missing / 🔴 exists+problems, name, i18n
+  directory, info), a **problems** table (component + problem detected), a
+  **mismatch** table listing components already linked to this repo whose slug
+  is not in the expected set (component + related directory, resolving
+  `weblate://` links), and a **setup summary** (which components will be created
+  / fixed). The `precheckOnly` flag (`--precheck-only` / `PRECHECK_ONLY` /
+  `INPUT_PRECHECK_ONLY`) stops right after the reports with **no changes** to
+  Weblate. Otherwise it **processes all components**: extracts the repository
+  **license** (see `lib/licenses.js`), then **creates** the missing ones (the
+  main links directly to the GitHub repo; every other is a **linked** component
+  `repo: weblate://<project>/<mainSlug>`) and **fixes** the existing ones
+  (corrects file mask/template, corrects the main's VCS, adds missing add-ons),
+  and finally logs a **change report** (`component X added`, `component X
+  filemask changed to Y`, `component X add-on Y added`, …). Newly created
+  components then get a repository **pull** (`pullComponentRepository`) and are
+  **bulk-marked so every non-English translation is "needs editing"**
   (`markComponentNeedsEditing`). Because Weblate processes a freshly created
   component **asynchronously** (right after creation the API can report only the
   source language with zero units), it first **waits until processing finishes**
