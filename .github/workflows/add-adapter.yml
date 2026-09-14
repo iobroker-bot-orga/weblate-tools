@@ -40,6 +40,9 @@ jobs:
           # Retrieve the GitHub secret and pass it to the script via env var.
           WEBLATE_TOKEN: ${{ secrets.WEBLATE_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Token used to open the summary issue on the adapter repository as
+          # the ioBroker bot.
+          IOBBOT_GITHUB_TOKEN: ${{ secrets.IOBBOT_GITHUB_TOKEN }}
           REPO: ${{ inputs.repo }}
           PRECHECK_ONLY: ${{ inputs.precheckOnly }}
           DEBUG: ${{ inputs.debug }}
