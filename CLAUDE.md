@@ -26,9 +26,10 @@ also be usable interactively** from the command line.
 ## Authorization & secrets
 
 - All REST ops are authorized. Weblate token from **`WEBLATE_TOKEN`**
-  (`Authorization: Token …`), GitHub token from **`GITHUB_TOKEN`**
-  (`Authorization: Bearer …`). No secrets in `config.js`. Workflows pass the
-  `WEBLATE_TOKEN` secret via env.
+  (`Authorization: Token …`), GitHub reads from **`GITHUB_TOKEN`**
+  (`Authorization: Bearer …`). Issues opened on adapter repos use a separate
+  bot token **`IOBBOT_GITHUB_TOKEN`** (`getGithubBotClient` / `createIssue`).
+  No secrets in `config.js`. Workflows pass the secrets via env.
 
 ## Weblate API
 
@@ -93,7 +94,12 @@ live server — keep these, they cost real debugging):
      `weblate://<project>/<mainSlug>`), rename mismatched, fix existing (file
      mask/template, name, the main's VCS, license, missing add-ons); **pull
      every component**; apply **needs-editing only to newly created**
-     components; then log a **change report**.
+     components; then log a **change report**. Finally, when anything was added
+     or modified, **open a summary issue** on the adapter repo as the ioBroker
+     bot (`IOBBOT_GITHUB_TOKEN`; skipped with a warning if unset, and a failure
+     there does not undo the Weblate work) — the title reflects added / modified
+     / both, and the body lists the new components (with Weblate links), badge /
+     translation guidance, and the change summary.
   - Add-ons come from `COMPONENT_ADDONS` (`config.js`); other component defaults
     (project `adapters`, base language `en`, `commit_pending_age` 3, repoweb
     template) live there too.
