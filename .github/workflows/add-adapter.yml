@@ -9,6 +9,11 @@ on:
         description: 'GitHub URL of the adapter repository (full URL or shortform "owner/ioBroker.adaptername")'
         required: true
         type: string
+      precheckOnly:
+        description: 'Only evaluate the repository and print the report; make no changes'
+        required: false
+        type: boolean
+        default: false
       debug:
         description: 'Enable debug logging'
         required: false
@@ -36,6 +41,7 @@ jobs:
           WEBLATE_TOKEN: ${{ secrets.WEBLATE_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ inputs.repo }}
+          PRECHECK_ONLY: ${{ inputs.precheckOnly }}
           DEBUG: ${{ inputs.debug }}
           # API identifier of the custom "ioBroker: Save translations into
           # words.js" add-on. Configure it as a repository variable; when empty

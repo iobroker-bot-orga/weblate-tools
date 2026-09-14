@@ -66,11 +66,18 @@ created via `axios.create()`.
 - `lib/addAdapter.js` — creates a Weblate component for an ioBroker adapter
   GitHub repository. Parses the repo reference (full URL or shortform
   `owner/ioBroker.adaptername`), resolves the head branch (main/master) from
-  repo metadata, retrieves the repo tree and lists all detected `i18n`
-  directories, selects `src-admin/i18n` if present else `admin/i18n`
-  (aborts with an error if neither exists), determines the language file
-  layout (`i18n/*.json`, or `i18n/*/translations.json` — plural, the ioBroker
-  convention), calculates the base
+  repo metadata, retrieves the repo tree and **evaluates all `i18n` directories**
+  (`lib/i18nEvaluation.js`): each is flat or nested; directories under a
+  `build/` folder are ignored; an `admin/` tree whose **English file** is
+  identical to a tree outside `admin/` is ignored as a duplicate. The **main**
+  directory is chosen in order: valid `admin/i18n` → the tree that `admin/i18n`
+  duplicates (if it was removed as a duplicate) → `src-admin/i18n` → else
+  undefined. An **evaluation report** (table sorted alphabetically: flag
+  🟢 valid / 🔴 ignored, main marker, directory, flat/nested, reason, duplicate)
+  is logged **always**. If no main directory is identified the run **aborts**.
+  The `precheckOnly` flag (`--precheck-only` / `PRECHECK_ONLY` /
+  `INPUT_PRECHECK_ONLY`) stops right after the report with **no changes** to
+  Weblate. Otherwise it calculates the base
   component name (**identical to the adapter name**; name == slug), aborts if
   a component with that slug already exists (logging the existing component's
   details as the abort reason), tries to extract the repository **license**
@@ -117,12 +124,17 @@ created via `axios.create()`.
   which matches a repository's LICENSE file content and returns the SPDX
   identifier Weblate expects (the SPDX id is the value passed to Weblate's
   `license` field). GitHub's own auto-detection is intentionally not used.
-  - Interactive: `WEBLATE_TOKEN=... GITHUB_TOKEN=... node lib/addAdapter.js --repo <url-or-owner/ioBroker.name> [--debug]`
-  - Also reads `REPO`/`INPUT_REPO`, `DEBUG`/`INPUT_DEBUG` and the optional
-    `WORDS_ADDON_NAME` env vars.
+  - Interactive: `WEBLATE_TOKEN=... GITHUB_TOKEN=... node lib/addAdapter.js --repo <url-or-owner/ioBroker.name> [--precheck-only] [--debug]`
+  - Also reads `REPO`/`INPUT_REPO`, `PRECHECK_ONLY`/`INPUT_PRECHECK_ONLY`,
+    `DEBUG`/`INPUT_DEBUG` and the optional `WORDS_ADDON_NAME` env vars.
+- `lib/i18nEvaluation.js` — evaluates a repo's `i18n` directories:
+  `findI18nDirectories`, `detectFormat` (flat/nested), `evaluateI18nTrees`
+  (ignores `build/`, ignores `admin/` duplicates of outside trees by comparing
+  the English file JSON-canonically, selects the main directory) and
+  `formatReport` (the alphabetical table).
 - `.github/workflows/add-adapter.yml` — **"add adapter"**, manual
-  (`workflow_dispatch`) with inputs `repo` (string, the adapter repo URL) and
-  `debug` (boolean).
+  (`workflow_dispatch`) with inputs `repo` (string, the adapter repo URL),
+  `precheckOnly` (boolean) and `debug` (boolean).
 
 **Workflow input defaults:** the `project` input defaults to `adapters`
 in this and every future workflow that has a `project` parameter.
