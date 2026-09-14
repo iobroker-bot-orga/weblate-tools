@@ -17,6 +17,11 @@ also be usable interactively** from the command line.
   that log at debug and **mask** tokens/secrets (`maskSensitive`).
 - **IPv4 only** process-wide (`createIpv4Agents`); Weblate requests send
   `Content-Type: application/json`.
+- `mapWithConcurrency`-based Weblate batches use at most
+  **`WEBLATE_MAX_CONCURRENCY`** (5) parallel requests so the slow server is not
+  overloaded. The Weblate client also retries transient failures — timeouts (up
+  to 3×, after 1/2/5 min) and throttling (HTTP 429, after `Retry-After` + 30 s)
+  — logging each wait at `warn`.
 
 ## Authorization & secrets
 
