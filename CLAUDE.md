@@ -95,9 +95,11 @@ created via `axios.create()`.
   `repo: weblate://<project>/<mainSlug>`) and **fixes** the existing ones
   (corrects file mask/template, corrects the main's VCS, adds missing add-ons),
   and finally logs a **change report** (`component X added`, `component X
-  filemask changed to Y`, `component X add-on Y added`, …). Newly created
-  components then get a repository **pull** (`pullComponentRepository`) and are
-  **bulk-marked so every non-English translation is "needs editing"**
+  filemask changed to Y`, `component X add-on Y added`, …). A repository
+  **pull** (`pullComponentRepository`) is then triggered for **every** component;
+  **needs-editing is (re)applied only to newly created components** (existing
+  components are left unchanged), so every non-English translation of a new
+  component is set to **"needs editing"**
   (`markComponentNeedsEditing`). Because Weblate processes a freshly created
   component **asynchronously** (right after creation the API can report only the
   source language with zero units), it first **waits until processing finishes**
