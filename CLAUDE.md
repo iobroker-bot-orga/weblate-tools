@@ -75,17 +75,20 @@ created via `axios.create()`.
   undefined. An **evaluation report** (table sorted alphabetically: flag
   🟢 valid / 🔴 ignored, main marker, directory, flat/nested, reason, duplicate)
   is logged **always**. If no main directory is identified the run **aborts**.
-  It then calculates a **component name/slug per valid i18n directory**
-  (`componentNameFor`): the main directory → the base component name (adapter
-  name); every other directory → `<adapterName>_<dir>` with the trailing `i18n`
-  segment removed and `/` replaced by `_` (e.g. `src-admin/src/i18n` →
-  `<adapter>_src-admin_src`). Each existing component is **verified** (file
-  mask, VCS, attached add-ons); logged **always** (reading Weblate, so
-  `WEBLATE_TOKEN` is needed even for a precheck): a **component report** table
-  (flag 🟢 exists+correct / 🟡 missing / 🔴 exists+problems, name, i18n
-  directory, info), a **problems** table (component + problem detected), a
-  **mismatch** table listing components already linked to this repo whose slug
-  is not in the expected set (component + related directory, resolving
+  It then calculates, per valid i18n directory, a separate **slug** and
+  **name**. Slug (`componentSlugFor`): the main directory → the base slug
+  (adapter name); every other directory → `<adapterName>_<dir>` with the
+  trailing `i18n` segment removed and `/` replaced by `_` (e.g.
+  `src-admin/src/i18n` → `<adapter>_src-admin_src`). Name
+  (`componentDisplayName`): `<adapterName> (/<dir>)` (e.g.
+  `shelly (/admin/i18n)`). Each existing component is **verified** (file mask,
+  VCS, attached add-ons); logged **always** (reading Weblate, so `WEBLATE_TOKEN`
+  is needed even for a precheck) and **every report line carries both slug and
+  name**: a **component report** table (flag 🟢 correct / 🟡 missing / 🔴
+  problems / 🟠 to be renamed, slug, name, i18n directory, info), a **problems**
+  table (slug + name + problem detected), a **mismatch** table listing
+  components already linked to this repo whose slug is not in the expected set
+  (slug + name + related directory, resolving
   `weblate://` links), and a **setup summary** (which components will be created
   / renamed / fixed). A mismatched component whose directory matches a
   **missing** component is marked 🟠 **to be renamed** and is **renamed** (via
