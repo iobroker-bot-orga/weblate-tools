@@ -13,6 +13,11 @@ on:
         required: false
         type: string
         default: ''
+      wait:
+        description: 'Seconds to wait between processing two components'
+        required: false
+        type: string
+        default: '30'
       debug:
         description: 'Enable debug logging'
         required: false
@@ -39,6 +44,7 @@ jobs:
           # Retrieve the GitHub secret and pass it to the script via env var.
           WEBLATE_TOKEN: ${{ secrets.WEBLATE_TOKEN }}
           ADAPTER: ${{ inputs.adapter }}
+          WAIT: ${{ inputs.wait }}
           DEBUG: ${{ inputs.debug }}
         run: node lib/syncAdapters.js
 

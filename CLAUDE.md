@@ -110,7 +110,7 @@ live server — keep these, they cost real debugging):
 
 - **`syncAdapters.js`** — synchronises Weblate component repositories with
   their GitHub upstreams.
-  `WEBLATE_TOKEN=… node lib/syncAdapters.js [--adapter <name>] [--project <slug>] [--debug]`.
+  `WEBLATE_TOKEN=… node lib/syncAdapters.js [--adapter <name>] [--project <slug>] [--wait <seconds>] [--debug]`.
   1. Logs the run parameters.
   2. **Commits** all pending project changes (project-level
      `commitProjectRepository` → `POST /api/projects/{project}/repository/`
@@ -118,12 +118,15 @@ live server — keep these, they cost real debugging):
   3. Lists the project's components and processes each one matching `--adapter`
      (main slug `<adapter>` or linked `<adapter>_…`), or **all** when none is
      given, sequentially:
-     - components **linked** to another (`repo` starts with `weblate://`) are
-       **skipped** (logged);
+     - components **linked** to another are **skipped** (logged). Linkage is
+       detected via the **`linked_component`** field — the list `repo` field
+       reports the *resolved* upstream URL even for linked components, so
+       `repo.startsWith('weblate://')` is only a fallback;
      - triggers an **update (pull)** then a **push** (`pullComponentRepository`
        / `pushComponentRepository`), awaiting each, with start/completion logs;
      - each failing op is **retried once after 30 s** (`withSingleRetry`);
-     - **waits 30 s** between components.
+     - **waits** `--wait`/`WAIT` seconds (default 30) **between two processed**
+       components — no wait is spent around a skipped component.
   4. Writes a success/failure report to `.syncAdapters_subject.txt` /
      `.syncAdapters_body.md` (and the log); exits non-zero if any component
      failed. Weblate repository ops run synchronously by default, so awaiting
