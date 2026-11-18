@@ -1,0 +1,66 @@
+name: sync adapters
+
+# Manually triggered workflow that synchronises the Weblate repositories of
+# ioBroker adapter components with their upstream GitHub repositories: it commits
+# all pending translation changes and then, for every (non-linked) component
+# matching the requested adapter (or all components when none is given), triggers
+# a repository update (pull) followed by a push. Finally it mails a report.
+on:
+  workflow_dispatch:
+    inputs:
+      adapter:
+        description: 'Adapter name to synchronise (leave empty to process all adapters)'
+        required: false
+        type: string
+        default: ''
+      debug:
+        description: 'Enable debug logging'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  sync-adapters:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Run sync adapters
+        env:
+          # Retrieve the GitHub secret and pass it to the script via env var.
+          WEBLATE_TOKEN: ${{ secrets.WEBLATE_TOKEN }}
+          ADAPTER: ${{ inputs.adapter }}
+          DEBUG: ${{ inputs.debug }}
+        run: node lib/syncAdapters.js
+
+      - name: Read subject file
+        id: getsubject
+        # Always runs so the report mail is sent even when the sync reported
+        # failures (the script still writes the report files before exiting).
+        if: always()
+        run: echo "subject=$(cat .syncAdapters_subject.txt)" >> $GITHUB_OUTPUT
+
+      - name: Send mail
+        uses: dawidd6/action-send-mail@v18
+        if: always()
+        with:
+          # for documentation see https://github.com/marketplace/actions/send-email
+          server_address: mail.gmx.net
+          server_port: 465
+          secure: true
+          username: iobroker-bot@gmx.at
+          password: ${{ secrets.IOBBOT_GMXMAIL }}
+          subject: ${{ steps.getsubject.outputs.subject }}
+          to: iobroker-bot@gmx.at
+          from: 'ioBroker Bot <iobroker-bot@gmx.at>'
+          html_body: file://.syncAdapters_body.md
+          convert_markdown: true

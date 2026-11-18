@@ -108,6 +108,30 @@ live server — keep these, they cost real debugging):
     mark other languages "needs editing"; it waits for async processing and
     retries while units are still read-only.
 
+- **`syncAdapters.js`** — synchronises Weblate component repositories with
+  their GitHub upstreams.
+  `WEBLATE_TOKEN=… node lib/syncAdapters.js [--adapter <name>] [--project <slug>] [--debug]`.
+  1. Logs the run parameters.
+  2. **Commits** all pending project changes (project-level
+     `commitProjectRepository` → `POST /api/projects/{project}/repository/`
+     `{operation:'commit'}`) and waits for completion.
+  3. Lists the project's components and processes each one matching `--adapter`
+     (main slug `<adapter>` or linked `<adapter>_…`), or **all** when none is
+     given, sequentially:
+     - components **linked** to another (`repo` starts with `weblate://`) are
+       **skipped** (logged);
+     - triggers an **update (pull)** then a **push** (`pullComponentRepository`
+       / `pushComponentRepository`), awaiting each, with start/completion logs;
+     - each failing op is **retried once after 30 s** (`withSingleRetry`);
+     - **waits 30 s** between components.
+  4. Writes a success/failure report to `.syncAdapters_subject.txt` /
+     `.syncAdapters_body.md` (and the log); exits non-zero if any component
+     failed. Weblate repository ops run synchronously by default, so awaiting
+     each POST is its completion.
+  - The `sync-adapters` workflow runs the tool and mails the report to
+    `iobroker-bot@gmx.at` via `dawidd6/action-send-mail` (secret
+    `IOBBOT_GMXMAIL`), with `if: always()` so it sends even on failures.
+
 - **`licenses.js`** — `detectLicense(text)` matches a repo LICENSE file to an
   SPDX id (Weblate's `license` value); GitHub auto-detection is intentionally
   not used.
