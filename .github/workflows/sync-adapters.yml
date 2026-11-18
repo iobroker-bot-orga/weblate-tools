@@ -23,6 +23,11 @@ on:
         required: false
         type: string
         default: '10'
+      locked_only:
+        description: 'Process only components that are currently locked'
+        required: false
+        type: boolean
+        default: false
       debug:
         description: 'Enable debug logging'
         required: false
@@ -50,6 +55,7 @@ jobs:
           WEBLATE_TOKEN: ${{ secrets.WEBLATE_TOKEN }}
           ADAPTER: ${{ inputs.adapter }}
           WAIT: ${{ inputs.wait }}
+          LOCKED_ONLY: ${{ inputs.locked_only }}
           DEBUG: ${{ inputs.debug }}
         run: node lib/syncAdapters.js
 

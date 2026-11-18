@@ -1,0 +1,54 @@
+name: unlock adapters
+
+# Attempts to unlock locked Weblate components by synchronising their
+# repositories: it runs the same sync-adapters tool but in "locked only" mode,
+# so only components that are currently locked are committed, pulled and pushed
+# (which usually clears the merge failure that caused the lock).
+#
+# Runs automatically every 3 hours (all adapters), and can also be triggered
+# manually. No mail is sent.
+on:
+  schedule:
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+    inputs:
+      adapter:
+        description: 'Adapter name to process (leave empty to process all adapters)'
+        required: false
+        type: string
+        default: ''
+      wait:
+        description: 'Seconds to wait between processing two components'
+        required: false
+        type: string
+        default: '10'
+      debug:
+        description: 'Enable debug logging'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  unlock-adapters:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Run unlock adapters (sync in locked-only mode)
+        env:
+          # Retrieve the GitHub secret and pass it to the script via env var.
+          WEBLATE_TOKEN: ${{ secrets.WEBLATE_TOKEN }}
+          ADAPTER: ${{ inputs.adapter }}
+          WAIT: ${{ inputs.wait }}
+          LOCKED_ONLY: 'true'
+          DEBUG: ${{ inputs.debug }}
+        run: node lib/syncAdapters.js
