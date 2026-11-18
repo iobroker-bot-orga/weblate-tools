@@ -110,7 +110,7 @@ live server — keep these, they cost real debugging):
 
 - **`syncAdapters.js`** — synchronises Weblate component repositories with
   their GitHub upstreams.
-  `WEBLATE_TOKEN=… node lib/syncAdapters.js [--adapter <name>] [--project <slug>] [--wait <seconds>] [--debug]`.
+  `WEBLATE_TOKEN=… node lib/syncAdapters.js [--adapter <name>] [--project <slug>] [--wait <seconds>] [--locked-only] [--debug]`.
   1. Logs the run parameters.
   2. **Commits** all pending project changes (project-level
      `commitProjectRepository` → `POST /api/projects/{project}/repository/`
@@ -139,10 +139,18 @@ live server — keep these, they cost real debugging):
      `.syncAdapters_subject.txt` / `.syncAdapters_body.md` (and the log); exits
      non-zero if any component failed. Weblate repository ops run synchronously
      by default, so awaiting each POST is its completion.
+  - **`--locked-only`** / **`LOCKED_ONLY`** restricts processing to components
+    that are **currently locked** (resolved via the authoritative per-component
+    lock endpoint, same bounded concurrency as other batches) — applied after
+    the adapter filter, before the sync loop. The project-wide locked scan
+    (step 5) still runs over every component regardless.
   - The `sync-adapters` workflow runs the tool (daily at **08:45 UTC** for all
-    adapters, and on manual dispatch) and mails the report to
-    `iobroker-bot@gmx.at` via `dawidd6/action-send-mail` (secret
+    adapters, and on manual dispatch, with a `locked_only` input) and mails the
+    report to `iobroker-bot@gmx.at` via `dawidd6/action-send-mail` (secret
     `IOBBOT_GMXMAIL`), with `if: always()` so it sends even on failures.
+  - The `unlock-adapters` workflow runs the same tool with `LOCKED_ONLY=true`
+    (every **3 hours** for all adapters, and on manual dispatch) to clear
+    locked components by re-syncing only them; it sends **no mail**.
 
 - **`licenses.js`** — `detectLicense(text)` matches a repo LICENSE file to an
   SPDX id (Weblate's `license` value); GitHub auto-detection is intentionally
