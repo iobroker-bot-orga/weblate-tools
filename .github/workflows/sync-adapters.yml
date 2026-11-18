@@ -1,11 +1,16 @@
 name: sync adapters
 
-# Manually triggered workflow that synchronises the Weblate repositories of
-# ioBroker adapter components with their upstream GitHub repositories: it commits
-# all pending translation changes and then, for every (non-linked) component
-# matching the requested adapter (or all components when none is given), triggers
-# a repository update (pull) followed by a push. Finally it mails a report.
+# Synchronises the Weblate repositories of ioBroker adapter components with their
+# upstream GitHub repositories: it commits all pending translation changes and
+# then, for every (non-linked) component matching the requested adapter (or all
+# components when none is given), triggers a repository update (pull) followed by
+# a push. Finally it mails a report.
+#
+# Runs automatically every day at 08:45 UTC (all adapters), and can also be
+# triggered manually.
 on:
+  schedule:
+    - cron: '45 8 * * *'
   workflow_dispatch:
     inputs:
       adapter:
@@ -17,7 +22,7 @@ on:
         description: 'Seconds to wait between processing two components'
         required: false
         type: string
-        default: '30'
+        default: '10'
       debug:
         description: 'Enable debug logging'
         required: false
