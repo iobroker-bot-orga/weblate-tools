@@ -118,10 +118,13 @@ live server — keep these, they cost real debugging):
   3. Lists the project's components and processes each one matching `--adapter`
      (main slug `<adapter>` or linked `<adapter>_…`), or **all** when none is
      given, sequentially:
-     - components **linked** to another are **skipped** (logged). Linkage is
-       detected via the **`linked_component`** field — the list `repo` field
-       reports the *resolved* upstream URL even for linked components, so
-       `repo.startsWith('weblate://')` is only a fallback;
+     - components **linked** to another are **skipped** (logged). The API does
+       **not** reliably expose the link (`linked_component` can be null even for
+       linked components, e.g. permission-nulled), so linkage is detected
+       primarily by **caching each processed component's resolved `repo` URL**:
+       a later component resolving to the same URL is skipped and the owning
+       component logged. The `linked_component` field and a `weblate://` value
+       in `repo` are additional (best-effort) skip signals;
      - triggers an **update (pull)** then a **push** (`pullComponentRepository`
        / `pushComponentRepository`), awaiting each, with start/completion logs;
      - each failing op is **retried once after 30 s** (`withSingleRetry`);
