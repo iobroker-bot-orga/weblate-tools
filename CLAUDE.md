@@ -128,7 +128,7 @@ live server — keep these, they cost real debugging):
      - triggers an **update (pull)** then a **push** (`pullComponentRepository`
        / `pushComponentRepository`), awaiting each, with start/completion logs;
      - each failing op is **retried once after 30 s** (`withSingleRetry`);
-     - **waits** `--wait`/`WAIT` seconds (default 30) **between two processed**
+     - **waits** `--wait`/`WAIT` seconds (default 10) **between two processed**
        components — no wait is spent around a skipped component.
   4. Runs an extra **project-wide LOCKED-components scan** (regardless of the
      adapter filter) via the authoritative lock endpoint, with a **best-effort
@@ -139,7 +139,8 @@ live server — keep these, they cost real debugging):
      `.syncAdapters_subject.txt` / `.syncAdapters_body.md` (and the log); exits
      non-zero if any component failed. Weblate repository ops run synchronously
      by default, so awaiting each POST is its completion.
-  - The `sync-adapters` workflow runs the tool and mails the report to
+  - The `sync-adapters` workflow runs the tool (daily at **08:45 UTC** for all
+    adapters, and on manual dispatch) and mails the report to
     `iobroker-bot@gmx.at` via `dawidd6/action-send-mail` (secret
     `IOBBOT_GMXMAIL`), with `if: always()` so it sends even on failures.
 
